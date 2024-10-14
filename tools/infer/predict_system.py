@@ -65,9 +65,7 @@ class TextSystem(object):
         bbox_num = len(img_crop_list)
         for bno in range(bbox_num):
             cv2.imwrite(
-                os.path.join(
-                    output_dir, f"mg_crop_{bno+self.crop_image_res_index}.jpg"
-                ),
+                os.path.join(output_dir, f"mg_crop_{bno+self.crop_image_res_index}.jpg"),
                 img_crop_list[bno],
             )
             logger.debug(f"{bno}, {rec_res[bno]}")
@@ -116,9 +114,7 @@ class TextSystem(object):
             time_dict["all"] = end - start
             return None, None, time_dict
         else:
-            logger.debug(
-                "dt_boxes num : {}, elapsed : {}".format(len(dt_boxes), elapse)
-            )
+            logger.debug("dt_boxes num : {}, elapsed : {}".format(len(dt_boxes), elapse))
         img_crop_list = []
 
         dt_boxes = sorted_boxes(dt_boxes)
@@ -133,13 +129,9 @@ class TextSystem(object):
         if self.use_angle_cls and cls:
             img_crop_list, angle_list, elapse = self.text_classifier(img_crop_list)
             time_dict["cls"] = elapse
-            logger.debug(
-                "cls num  : {}, elapsed : {}".format(len(img_crop_list), elapse)
-            )
+            logger.debug("cls num  : {}, elapsed : {}".format(len(img_crop_list), elapse))
         if len(img_crop_list) > 1000:
-            logger.debug(
-                f"rec crops num: {len(img_crop_list)}, time and memory cost may be large."
-            )
+            logger.debug(f"rec crops num: {len(img_crop_list)}, time and memory cost may be large.")
 
         rec_res, elapse = self.text_recognizer(img_crop_list)
         time_dict["rec"] = elapse
@@ -171,9 +163,7 @@ def sorted_boxes(dt_boxes):
 
     for i in range(num_boxes - 1):
         for j in range(i, -1, -1):
-            if abs(_boxes[j + 1][0][1] - _boxes[j][0][1]) < 10 and (
-                _boxes[j + 1][0][0] < _boxes[j][0][0]
-            ):
+            if abs(_boxes[j + 1][0][1] - _boxes[j][0][1]) < 10 and (_boxes[j + 1][0][0] < _boxes[j][0][0]):
                 tmp = _boxes[j]
                 _boxes[j] = _boxes[j + 1]
                 _boxes[j + 1] = tmp
@@ -228,16 +218,9 @@ def main(args):
             elapse = time.time() - starttime
             total_time += elapse
             if len(imgs) > 1:
-                logger.debug(
-                    str(idx)
-                    + "_"
-                    + str(index)
-                    + "  Predict time of %s: %.3fs" % (image_file, elapse)
-                )
+                logger.debug(str(idx) + "_" + str(index) + "  Predict time of %s: %.3fs" % (image_file, elapse))
             else:
-                logger.debug(
-                    str(idx) + "  Predict time of %s: %.3fs" % (image_file, elapse)
-                )
+                logger.debug(str(idx) + "  Predict time of %s: %.3fs" % (image_file, elapse))
             for text, score in rec_res:
                 logger.debug("{}, {:.3f}".format(text, score))
 
@@ -250,20 +233,10 @@ def main(args):
             ]
             if len(imgs) > 1:
                 save_pred = (
-                    os.path.basename(image_file)
-                    + "_"
-                    + str(index)
-                    + "\t"
-                    + json.dumps(res, ensure_ascii=False)
-                    + "\n"
+                    os.path.basename(image_file) + "_" + str(index) + "\t" + json.dumps(res, ensure_ascii=False) + "\n"
                 )
             else:
-                save_pred = (
-                    os.path.basename(image_file)
-                    + "\t"
-                    + json.dumps(res, ensure_ascii=False)
-                    + "\n"
-                )
+                save_pred = os.path.basename(image_file) + "\t" + json.dumps(res, ensure_ascii=False) + "\n"
             save_results.append(save_pred)
 
             if is_visualize:
@@ -301,9 +274,7 @@ def main(args):
         text_sys.text_detector.autolog.report()
         text_sys.text_recognizer.autolog.report()
 
-    with open(
-        os.path.join(draw_img_save_dir, "system_results.txt"), "w", encoding="utf-8"
-    ) as f:
+    with open(os.path.join(draw_img_save_dir, "system_results.txt"), "w", encoding="utf-8") as f:
         f.writelines(save_results)
 
 
@@ -314,9 +285,7 @@ if __name__ == "__main__":
         total_process_num = args.total_process_num
         for process_id in range(total_process_num):
             cmd = (
-                [sys.executable, "-u"]
-                + sys.argv
-                + ["--process_id={}".format(process_id), "--use_mp={}".format(False)]
+                [sys.executable, "-u"] + sys.argv + ["--process_id={}".format(process_id), "--use_mp={}".format(False)]
             )
             p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stdout)
             p_list.append(p)

@@ -42,26 +42,20 @@ def dump_infer_config(config, path, logger):
     if config["Global"].get("hpi_config_path", None):
         hpi_config = yaml.safe_load(open(config["Global"]["hpi_config_path"], "r"))
         rec_resize_img_dict = next(
-            (
-                item
-                for item in config["Eval"]["dataset"]["transforms"]
-                if "RecResizeImg" in item
-            ),
+            (item for item in config["Eval"]["dataset"]["transforms"] if "RecResizeImg" in item),
             None,
         )
         if rec_resize_img_dict:
             dynamic_shapes = [1] + rec_resize_img_dict["RecResizeImg"]["image_shape"]
             if hpi_config["Hpi"]["backend_config"].get("paddle_tensorrt", None):
-                hpi_config["Hpi"]["backend_config"]["paddle_tensorrt"][
-                    "dynamic_shapes"
-                ]["x"] = [dynamic_shapes for i in range(3)]
-                hpi_config["Hpi"]["backend_config"]["paddle_tensorrt"][
-                    "max_batch_size"
-                ] = 1
+                hpi_config["Hpi"]["backend_config"]["paddle_tensorrt"]["dynamic_shapes"]["x"] = [
+                    dynamic_shapes for i in range(3)
+                ]
+                hpi_config["Hpi"]["backend_config"]["paddle_tensorrt"]["max_batch_size"] = 1
             if hpi_config["Hpi"]["backend_config"].get("tensorrt", None):
-                hpi_config["Hpi"]["backend_config"]["tensorrt"]["dynamic_shapes"][
-                    "x"
-                ] = [dynamic_shapes for i in range(3)]
+                hpi_config["Hpi"]["backend_config"]["tensorrt"]["dynamic_shapes"]["x"] = [
+                    dynamic_shapes for i in range(3)
+                ]
                 hpi_config["Hpi"]["backend_config"]["tensorrt"]["max_batch_size"] = 1
         else:
             if hpi_config["Hpi"]["backend_config"].get("paddle_tensorrt", None):
@@ -97,30 +91,20 @@ def dump_infer_config(config, path, logger):
     infer_cfg["PostProcess"] = postprocess
 
     with open(path, "w") as f:
-        yaml.dump(
-            infer_cfg, f, default_flow_style=False, encoding="utf-8", allow_unicode=True
-        )
+        yaml.dump(infer_cfg, f, default_flow_style=False, encoding="utf-8", allow_unicode=True)
     logger.info("Export inference config file to {}".format(os.path.join(path)))
 
 
-def export_single_model(
-    model, arch_config, save_path, logger, input_shape=None, quanter=None
-):
+def export_single_model(model, arch_config, save_path, logger, input_shape=None, quanter=None):
     if arch_config["algorithm"] == "SRN":
         max_text_length = arch_config["Head"]["max_text_length"]
         other_shape = [
             paddle.static.InputSpec(shape=[None, 1, 64, 256], dtype="float32"),
             [
                 paddle.static.InputSpec(shape=[None, 256, 1], dtype="int64"),
-                paddle.static.InputSpec(
-                    shape=[None, max_text_length, 1], dtype="int64"
-                ),
-                paddle.static.InputSpec(
-                    shape=[None, 8, max_text_length, max_text_length], dtype="int64"
-                ),
-                paddle.static.InputSpec(
-                    shape=[None, 8, max_text_length, max_text_length], dtype="int64"
-                ),
+                paddle.static.InputSpec(shape=[None, max_text_length, 1], dtype="int64"),
+                paddle.static.InputSpec(shape=[None, 8, max_text_length, max_text_length], dtype="int64"),
+                paddle.static.InputSpec(shape=[None, 8, max_text_length, max_text_length], dtype="int64"),
             ],
         ]
         model = to_static(model, input_spec=other_shape)
@@ -146,9 +130,7 @@ def export_single_model(
         ]
         model = to_static(model, input_spec=other_shape)
     elif arch_config["model_type"] == "sr":
-        other_shape = [
-            paddle.static.InputSpec(shape=[None, 3, 16, 64], dtype="float32")
-        ]
+        other_shape = [paddle.static.InputSpec(shape=[None, 3, 16, 64], dtype="float32")]
         model = to_static(model, input_spec=other_shape)
     elif arch_config["algorithm"] == "ViTSTR":
         other_shape = [
@@ -197,9 +179,7 @@ def export_single_model(
             [
                 paddle.static.InputSpec(shape=[None, 1, None, None], dtype="float32"),
                 paddle.static.InputSpec(shape=[None, 1, None, None], dtype="float32"),
-                paddle.static.InputSpec(
-                    shape=[None, arch_config["Head"]["max_text_length"]], dtype="int64"
-                ),
+                paddle.static.InputSpec(shape=[None, arch_config["Head"]["max_text_length"]], dtype="int64"),
             ]
         ]
         model = to_static(model, input_spec=other_shape)
@@ -219,12 +199,8 @@ def export_single_model(
         if "Re" in arch_config["Backbone"]["name"]:
             input_spec.extend(
                 [
-                    paddle.static.InputSpec(
-                        shape=[None, 512, 3], dtype="int64"
-                    ),  # entities
-                    paddle.static.InputSpec(
-                        shape=[None, None, 2], dtype="int64"
-                    ),  # relations
+                    paddle.static.InputSpec(shape=[None, 512, 3], dtype="int64"),  # entities
+                    paddle.static.InputSpec(shape=[None, None, 2], dtype="int64"),  # relations
                 ]
             )
         if model.backbone.use_visual_backbone is False:
@@ -251,15 +227,10 @@ def export_single_model(
                 infer_shape = [3, -1, -1]
         model = to_static(
             model,
-            input_spec=[
-                paddle.static.InputSpec(shape=[None] + infer_shape, dtype="float32")
-            ],
+            input_spec=[paddle.static.InputSpec(shape=[None] + infer_shape, dtype="float32")],
         )
 
-    if (
-        arch_config["model_type"] != "sr"
-        and arch_config["Backbone"]["name"] == "PPLCNetV3"
-    ):
+    if arch_config["model_type"] != "sr" and arch_config["Backbone"]["name"] == "PPLCNetV3":
         # for rep lcnetv3
         for layer in model.sublayers():
             if hasattr(layer, "rep") and not getattr(layer, "is_repped"):
@@ -288,9 +259,7 @@ def export(config, base_model=None, save_path=None):
             "Distillation",
         ]:  # distillation model
             for key in config["Architecture"]["Models"]:
-                if (
-                    config["Architecture"]["Models"][key]["Head"]["name"] == "MultiHead"
-                ):  # multi head
+                if config["Architecture"]["Models"][key]["Head"]["name"] == "MultiHead":  # multi head
                     out_channels_list = {}
                     if config["PostProcess"]["name"] == "DistillationSARLabelDecode":
                         char_num = char_num - 2
@@ -299,13 +268,9 @@ def export(config, base_model=None, save_path=None):
                     out_channels_list["CTCLabelDecode"] = char_num
                     out_channels_list["SARLabelDecode"] = char_num + 2
                     out_channels_list["NRTRLabelDecode"] = char_num + 3
-                    config["Architecture"]["Models"][key]["Head"][
-                        "out_channels_list"
-                    ] = out_channels_list
+                    config["Architecture"]["Models"][key]["Head"]["out_channels_list"] = out_channels_list
                 else:
-                    config["Architecture"]["Models"][key]["Head"][
-                        "out_channels"
-                    ] = char_num
+                    config["Architecture"]["Models"][key]["Head"]["out_channels"] = char_num
                 # just one final tensor needs to exported for inference
                 config["Architecture"]["Models"][key]["return_all_feats"] = False
         elif config["Architecture"]["Head"]["name"] == "MultiHead":  # multi head
@@ -348,19 +313,10 @@ def export(config, base_model=None, save_path=None):
 
     arch_config = config["Architecture"]
 
-    if (
-        arch_config["algorithm"] in ["SVTR", "CPPD"]
-        and arch_config["Head"]["name"] != "MultiHead"
-    ):
-        input_shape = config["Eval"]["dataset"]["transforms"][-2]["SVTRRecResizeImg"][
-            "image_shape"
-        ]
+    if arch_config["algorithm"] in ["SVTR", "CPPD"] and arch_config["Head"]["name"] != "MultiHead":
+        input_shape = config["Eval"]["dataset"]["transforms"][-2]["SVTRRecResizeImg"]["image_shape"]
     elif arch_config["algorithm"].lower() == "ABINet".lower():
-        rec_rs = [
-            c
-            for c in config["Eval"]["dataset"]["transforms"]
-            if "ABINetRecResizeImg" in c
-        ]
+        rec_rs = [c for c in config["Eval"]["dataset"]["transforms"] if "ABINetRecResizeImg" in c]
         input_shape = rec_rs[0]["ABINetRecResizeImg"]["image_shape"] if rec_rs else None
     else:
         input_shape = None
@@ -371,12 +327,8 @@ def export(config, base_model=None, save_path=None):
         archs = list(arch_config["Models"].values())
         for idx, name in enumerate(model.model_name_list):
             sub_model_save_path = os.path.join(save_path, name, "inference")
-            export_single_model(
-                model.model_list[idx], archs[idx], sub_model_save_path, logger
-            )
+            export_single_model(model.model_list[idx], archs[idx], sub_model_save_path, logger)
     else:
         save_path = os.path.join(save_path, "inference")
-        export_single_model(
-            model, arch_config, save_path, logger, input_shape=input_shape
-        )
+        export_single_model(model, arch_config, save_path, logger, input_shape=input_shape)
     dump_infer_config(config, yaml_path, logger)

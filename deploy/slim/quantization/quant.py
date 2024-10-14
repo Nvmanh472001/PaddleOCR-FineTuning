@@ -112,42 +112,27 @@ def main(config, device, logger, vdl_writer):
             "Distillation",
         ]:  # distillation model
             for key in config["Architecture"]["Models"]:
-                if (
-                    config["Architecture"]["Models"][key]["Head"]["name"] == "MultiHead"
-                ):  # for multi head
+                if config["Architecture"]["Models"][key]["Head"]["name"] == "MultiHead":  # for multi head
                     if config["PostProcess"]["name"] == "DistillationSARLabelDecode":
                         char_num = char_num - 2
                     # update SARLoss params
-                    assert (
-                        list(config["Loss"]["loss_config_list"][-1].keys())[0]
-                        == "DistillationSARLoss"
-                    )
-                    config["Loss"]["loss_config_list"][-1]["DistillationSARLoss"][
-                        "ignore_index"
-                    ] = (char_num + 1)
+                    assert list(config["Loss"]["loss_config_list"][-1].keys())[0] == "DistillationSARLoss"
+                    config["Loss"]["loss_config_list"][-1]["DistillationSARLoss"]["ignore_index"] = char_num + 1
                     out_channels_list = {}
                     out_channels_list["CTCLabelDecode"] = char_num
                     out_channels_list["SARLabelDecode"] = char_num + 2
-                    config["Architecture"]["Models"][key]["Head"][
-                        "out_channels_list"
-                    ] = out_channels_list
+                    config["Architecture"]["Models"][key]["Head"]["out_channels_list"] = out_channels_list
                 else:
-                    config["Architecture"]["Models"][key]["Head"][
-                        "out_channels"
-                    ] = char_num
+                    config["Architecture"]["Models"][key]["Head"]["out_channels"] = char_num
         elif config["Architecture"]["Head"]["name"] == "MultiHead":  # for multi head
             if config["PostProcess"]["name"] == "SARLabelDecode":
                 char_num = char_num - 2
             # update SARLoss params
             assert list(config["Loss"]["loss_config_list"][1].keys())[0] == "SARLoss"
             if config["Loss"]["loss_config_list"][1]["SARLoss"] is None:
-                config["Loss"]["loss_config_list"][1]["SARLoss"] = {
-                    "ignore_index": char_num + 1
-                }
+                config["Loss"]["loss_config_list"][1]["SARLoss"] = {"ignore_index": char_num + 1}
             else:
-                config["Loss"]["loss_config_list"][1]["SARLoss"]["ignore_index"] = (
-                    char_num + 1
-                )
+                config["Loss"]["loss_config_list"][1]["SARLoss"]["ignore_index"] = char_num + 1
             out_channels_list = {}
             out_channels_list["CTCLabelDecode"] = char_num
             out_channels_list["SARLabelDecode"] = char_num + 2
@@ -161,16 +146,12 @@ def main(config, device, logger, vdl_writer):
 
     pre_best_model_dict = dict()
     # load fp32 model to begin quantization
-    pre_best_model_dict = load_model(
-        config, model, None, config["Architecture"]["model_type"]
-    )
+    pre_best_model_dict = load_model(config, model, None, config["Architecture"]["model_type"])
 
     freeze_params = False
     if config["Architecture"]["algorithm"] in ["Distillation"]:
         for key in config["Architecture"]["Models"]:
-            freeze_params = freeze_params or config["Architecture"]["Models"][key].get(
-                "freeze_params", False
-            )
+            freeze_params = freeze_params or config["Architecture"]["Models"][key].get("freeze_params", False)
     act = None if freeze_params else PACT
     quanter = QAT(config=quant_config, act_preprocess=act)
     quanter.quantize(model)
@@ -190,9 +171,7 @@ def main(config, device, logger, vdl_writer):
     )
 
     # resume PACT training process
-    pre_best_model_dict = load_model(
-        config, model, optimizer, config["Architecture"]["model_type"]
-    )
+    pre_best_model_dict = load_model(config, model, optimizer, config["Architecture"]["model_type"])
 
     # build metric
     eval_class = build_metric(config["Metric"])

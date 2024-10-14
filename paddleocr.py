@@ -15,6 +15,7 @@
 import os
 import sys
 import importlib
+import copy
 
 __dir__ = os.path.dirname(__file__)
 
@@ -32,6 +33,31 @@ from io import BytesIO
 import pprint
 from PIL import Image
 
+from tools.infer.utility import get_rotate_crop_image
+
+
+def sorted_boxes(dt_boxes):
+    """
+    Sort text boxes in order from top to bottom, left to right
+    args:
+        dt_boxes(array):detected text boxes with shape [4, 2]
+    return:
+        sorted boxes(array) with shape [4, 2]
+    """
+    num_boxes = dt_boxes.shape[0]
+    sorted_boxes = sorted(dt_boxes, key=lambda x: (x[0][1], x[0][0]))
+    _boxes = list(sorted_boxes)
+
+    for i in range(num_boxes - 1):
+        for j in range(i, -1, -1):
+            if abs(_boxes[j + 1][0][1] - _boxes[j][0][1]) < 10 and (_boxes[j + 1][0][0] < _boxes[j][0][0]):
+                tmp = _boxes[j]
+                _boxes[j] = _boxes[j + 1]
+                _boxes[j + 1] = tmp
+            else:
+                break
+    return _boxes
+
 
 def _import_file(module_name, file_path, make_importable=False):
     spec = importlib.util.spec_from_file_location(module_name, file_path)
@@ -42,9 +68,7 @@ def _import_file(module_name, file_path, make_importable=False):
     return module
 
 
-tools = _import_file(
-    "tools", os.path.join(__dir__, "tools/__init__.py"), make_importable=True
-)
+tools = _import_file("tools", os.path.join(__dir__, "tools/__init__.py"), make_importable=True)
 ppocr = importlib.import_module("ppocr", "paddleocr")
 ppstructure = importlib.import_module("ppstructure", "paddleocr")
 from ppocr.utils.logging import get_logger
@@ -507,9 +531,7 @@ def parse_lang(lang):
         lang = "cyrillic"
     elif lang in devanagari_lang:
         lang = "devanagari"
-    assert (
-        lang in MODEL_URLS["OCR"][DEFAULT_OCR_MODEL_VERSION]["rec"]
-    ), "param lang must in {}, but got {}".format(
+    assert lang in MODEL_URLS["OCR"][DEFAULT_OCR_MODEL_VERSION]["rec"], "param lang must in {}, but got {}".format(
         MODEL_URLS["OCR"][DEFAULT_OCR_MODEL_VERSION]["rec"].keys(), lang
     )
     if lang == "ch":
@@ -629,9 +651,7 @@ class PaddleOCR(predict_system.TextSystem):
         """
         params = parse_args(mMain=False)
         params.__dict__.update(**kwargs)
-        assert (
-            params.ocr_version in SUPPORT_OCR_MODEL_VERSION
-        ), "ocr_version must in {}, but get {}".format(
+        assert params.ocr_version in SUPPORT_OCR_MODEL_VERSION, "ocr_version must in {}, but get {}".format(
             SUPPORT_OCR_MODEL_VERSION, params.ocr_version
         )
         params.use_gpu = check_gpu(params.use_gpu)
@@ -678,9 +698,7 @@ class PaddleOCR(predict_system.TextSystem):
             sys.exit(0)
 
         if params.rec_char_dict_path is None:
-            params.rec_char_dict_path = str(
-                Path(__file__).parent / rec_model_config["dict_path"]
-            )
+            params.rec_char_dict_path = str(Path(__file__).parent / rec_model_config["dict_path"])
 
         logger.debug(params)
         # init det_model and rec_model
@@ -765,16 +783,26 @@ class PaddleOCR(predict_system.TextSystem):
                 ocr_res.append(tmp_res)
             return ocr_res
         elif det and not rec:
-            ocr_res = []
+            img_crop_list = []
+            ori_im = img.copy()
             for img in imgs:
                 img = preprocess_image(img)
                 dt_boxes, elapse = self.text_detector(img)
                 if dt_boxes.size == 0:
-                    ocr_res.append(None)
+                    img_crop_list.append(None)
                     continue
-                tmp_res = [box.tolist() for box in dt_boxes]
-                ocr_res.append(tmp_res)
-            return ocr_res
+
+                dt_boxes = sorted_boxes(dt_boxes)
+                for bno in range(len(dt_boxes)):
+                    tmp_box = copy.deepcopy(dt_boxes[bno])
+                    tmp_box[0][1] -= 15
+                    tmp_box[1][1] -= 15
+                    tmp_box[2][1] += 15
+                    tmp_box[3][1] += 15
+                    img_crop = get_rotate_crop_image(ori_im, tmp_box)
+                    img_crop_list.append(img_crop)
+
+            return img_crop_list
         else:
             ocr_res = []
             cls_res = []
@@ -813,9 +841,7 @@ class PPStructure(StructureSystem):
         params.__dict__.update(**kwargs)
         assert (
             params.structure_version in SUPPORT_STRUCTURE_MODEL_VERSION
-        ), "structure_version must in {}, but get {}".format(
-            SUPPORT_STRUCTURE_MODEL_VERSION, params.structure_version
-        )
+        ), "structure_version must in {}, but get {}".format(SUPPORT_STRUCTURE_MODEL_VERSION, params.structure_version)
         params.use_gpu = check_gpu(params.use_gpu)
         params.mode = "structure"
 
@@ -842,25 +868,19 @@ class PPStructure(StructureSystem):
             os.path.join(BASE_DIR, "whl", "rec", lang),
             rec_model_config["url"],
         )
-        table_model_config = get_model_config(
-            "STRUCTURE", params.structure_version, "table", table_lang
-        )
+        table_model_config = get_model_config("STRUCTURE", params.structure_version, "table", table_lang)
         params.table_model_dir, table_url = confirm_model_dir_url(
             params.table_model_dir,
             os.path.join(BASE_DIR, "whl", "table"),
             table_model_config["url"],
         )
-        layout_model_config = get_model_config(
-            "STRUCTURE", params.structure_version, "layout", lang
-        )
+        layout_model_config = get_model_config("STRUCTURE", params.structure_version, "layout", lang)
         params.layout_model_dir, layout_url = confirm_model_dir_url(
             params.layout_model_dir,
             os.path.join(BASE_DIR, "whl", "layout"),
             layout_model_config["url"],
         )
-        formula_model_config = get_model_config(
-            "STRUCTURE", params.structure_version, "formula", lang
-        )
+        formula_model_config = get_model_config("STRUCTURE", params.structure_version, "formula", lang)
         params.formula_model_dir, formula_url = confirm_model_dir_url(
             params.formula_model_dir,
             os.path.join(BASE_DIR, "whl", "formula"),
@@ -875,21 +895,13 @@ class PPStructure(StructureSystem):
             maybe_download(params.formula_model_dir, formula_url)
 
         if params.rec_char_dict_path is None:
-            params.rec_char_dict_path = str(
-                Path(__file__).parent / rec_model_config["dict_path"]
-            )
+            params.rec_char_dict_path = str(Path(__file__).parent / rec_model_config["dict_path"])
         if params.table_char_dict_path is None:
-            params.table_char_dict_path = str(
-                Path(__file__).parent / table_model_config["dict_path"]
-            )
+            params.table_char_dict_path = str(Path(__file__).parent / table_model_config["dict_path"])
         if params.layout_dict_path is None:
-            params.layout_dict_path = str(
-                Path(__file__).parent / layout_model_config["dict_path"]
-            )
+            params.layout_dict_path = str(Path(__file__).parent / layout_model_config["dict_path"])
         if params.formula_char_dict_path is None:
-            params.formula_char_dict_path = str(
-                Path(__file__).parent / formula_model_config["dict_path"]
-            )
+            params.formula_char_dict_path = str(Path(__file__).parent / formula_model_config["dict_path"])
         logger.debug(params)
         super().__init__(params)
 
@@ -918,9 +930,7 @@ class PPStructure(StructureSystem):
             res_list = []
             for index, pdf_img in enumerate(img):
                 logger.info("processing {}/{} page:".format(index + 1, len(img)))
-                res, _ = super().__call__(
-                    pdf_img, return_ocr_result_in_table, img_idx=index
-                )
+                res, _ = super().__call__(pdf_img, return_ocr_result_in_table, img_idx=index)
                 res_list.append(res)
             return res_list
         res, _ = super().__call__(img, return_ocr_result_in_table, img_idx=img_idx)
@@ -1010,9 +1020,7 @@ def main():
                 img_paths = []
                 for index, pdf_img in enumerate(img):
                     os.makedirs(os.path.join(args.output, img_name), exist_ok=True)
-                    pdf_img_path = os.path.join(
-                        args.output, img_name, img_name + "_" + str(index) + ".jpg"
-                    )
+                    pdf_img_path = os.path.join(args.output, img_name, img_name + "_" + str(index) + ".jpg")
                     cv2.imwrite(pdf_img_path, pdf_img)
                     img_paths.append([pdf_img_path, pdf_img])
 
@@ -1034,11 +1042,7 @@ def main():
                     if args.recovery_to_markdown:
                         convert_info_markdown(all_res, args.output, img_name)
                 except Exception as ex:
-                    logger.error(
-                        "error in layout recovery image:{}, err msg: {}".format(
-                            img_name, ex
-                        )
-                    )
+                    logger.error("error in layout recovery image:{}, err msg: {}".format(img_name, ex))
                     continue
 
             for item in all_res:

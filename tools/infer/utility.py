@@ -93,9 +93,7 @@ def init_args():
     parser.add_argument("--rec_image_shape", type=str, default="3, 48, 320")
     parser.add_argument("--rec_batch_num", type=int, default=6)
     parser.add_argument("--max_text_length", type=int, default=25)
-    parser.add_argument(
-        "--rec_char_dict_path", type=str, default="./ppocr/utils/ppocr_keys_v1.txt"
-    )
+    parser.add_argument("--rec_char_dict_path", type=str, default="./ppocr/utils/ppocr_keys_v1.txt")
     parser.add_argument("--use_space_char", type=str2bool, default=True)
     parser.add_argument("--vis_font_path", type=str, default="./doc/fonts/simfang.ttf")
     parser.add_argument("--drop_score", type=float, default=0.5)
@@ -108,9 +106,7 @@ def init_args():
 
     # PGNet parmas
     parser.add_argument("--e2e_pgnet_score_thresh", type=float, default=0.5)
-    parser.add_argument(
-        "--e2e_char_dict_path", type=str, default="./ppocr/utils/ic15_dict.txt"
-    )
+    parser.add_argument("--e2e_char_dict_path", type=str, default="./ppocr/utils/ic15_dict.txt")
     parser.add_argument("--e2e_pgnet_valid_set", type=str, default="totaltext")
     parser.add_argument("--e2e_pgnet_mode", type=str, default="fast")
 
@@ -204,9 +200,7 @@ def create_predictor(args, mode, logger):
                 ],
             )
         else:
-            sess = ort.InferenceSession(
-                model_file_path, providers=["CPUExecutionProvider"]
-            )
+            sess = ort.InferenceSession(model_file_path, providers=["CPUExecutionProvider"])
         return sess, sess.get_inputs()[0], None, None
 
     else:
@@ -217,15 +211,9 @@ def create_predictor(args, mode, logger):
             if os.path.exists(model_file_path) and os.path.exists(params_file_path):
                 break
         if not os.path.exists(model_file_path):
-            raise ValueError(
-                "not find model.pdmodel or inference.pdmodel in {}".format(model_dir)
-            )
+            raise ValueError("not find model.pdmodel or inference.pdmodel in {}".format(model_dir))
         if not os.path.exists(params_file_path):
-            raise ValueError(
-                "not find model.pdiparams or inference.pdiparams in {}".format(
-                    model_dir
-                )
-            )
+            raise ValueError("not find model.pdiparams or inference.pdiparams in {}".format(model_dir))
 
         config = inference.Config(model_file_path, params_file_path)
 
@@ -346,9 +334,7 @@ def get_infer_gpuid():
         gpu_id_str = os.environ.get("HIP_VISIBLE_DEVICES", "0")
 
     gpu_ids = gpu_id_str.split(",")
-    logger.warning(
-        "The first GPU is used for inference by default, GPU ID: {}".format(gpu_ids[0])
-    )
+    logger.warning("The first GPU is used for inference by default, GPU ID: {}".format(gpu_ids[0]))
     return int(gpu_ids[0])
 
 
@@ -464,12 +450,8 @@ def draw_ocr_box_txt(
 
 
 def draw_box_txt_fine(img_size, box, txt, font_path="./doc/fonts/simfang.ttf"):
-    box_height = int(
-        math.sqrt((box[0][0] - box[3][0]) ** 2 + (box[0][1] - box[3][1]) ** 2)
-    )
-    box_width = int(
-        math.sqrt((box[0][0] - box[1][0]) ** 2 + (box[0][1] - box[1][1]) ** 2)
-    )
+    box_height = int(math.sqrt((box[0][0] - box[3][0]) ** 2 + (box[0][1] - box[3][1]) ** 2))
+    box_width = int(math.sqrt((box[0][0] - box[1][0]) ** 2 + (box[0][1] - box[1][1]) ** 2))
 
     if box_height > 2 * box_width and box_height > 30:
         img_text = Image.new("RGB", (box_height, box_width), (255, 255, 255))
@@ -485,9 +467,7 @@ def draw_box_txt_fine(img_size, box, txt, font_path="./doc/fonts/simfang.ttf"):
             font = create_font(txt, (box_width, box_height), font_path)
             draw_text.text([0, 0], txt, fill=(0, 0, 0), font=font)
 
-    pts1 = np.float32(
-        [[0, 0], [box_width, 0], [box_width, box_height], [0, box_height]]
-    )
+    pts1 = np.float32([[0, 0], [box_width, 0], [box_width, box_height], [0, box_height]])
     pts2 = np.array(box, dtype=np.float32)
     M = cv2.getPerspectiveTransform(pts1, pts2)
 
@@ -542,9 +522,7 @@ def str_count(s):
     return s_len - math.ceil(en_dg_count / 2)
 
 
-def text_visual(
-    texts, scores, img_h=400, img_w=600, threshold=0.0, font_path="./doc/simfang.ttf"
-):
+def text_visual(texts, scores, img_h=400, img_w=600, threshold=0.0, font_path="./doc/simfang.ttf"):
     """
     create new blank img and draw txt on it
     args:
@@ -556,9 +534,7 @@ def text_visual(
     return(array):
     """
     if scores is not None:
-        assert len(texts) == len(
-            scores
-        ), "The number of txts and corresponding scores must match"
+        assert len(texts) == len(scores), "The number of txts and corresponding scores must match"
 
     def create_blank_img():
         blank_img = np.ones(shape=[img_h, img_w], dtype=np.int8) * 255
@@ -648,16 +624,8 @@ def get_rotate_crop_image(img, points):
     points[:, 1] = points[:, 1] - top
     """
     assert len(points) == 4, "shape of points must be 4*2"
-    img_crop_width = int(
-        max(
-            np.linalg.norm(points[0] - points[1]), np.linalg.norm(points[2] - points[3])
-        )
-    )
-    img_crop_height = int(
-        max(
-            np.linalg.norm(points[0] - points[3]), np.linalg.norm(points[1] - points[2])
-        )
-    )
+    img_crop_width = int(max(np.linalg.norm(points[0] - points[1]), np.linalg.norm(points[2] - points[3])))
+    img_crop_height = int(max(np.linalg.norm(points[0] - points[3]), np.linalg.norm(points[1] - points[2])))
     pts_std = np.float32(
         [
             [0, 0],
@@ -711,13 +679,9 @@ def slice_generator(image, horizontal_stride, vertical_stride, maximum_slices=50
     vertical_num_slices = (image_h + vertical_stride - 1) // vertical_stride
     horizontal_num_slices = (image_w + horizontal_stride - 1) // horizontal_stride
 
-    assert (
-        vertical_num_slices > 0
-    ), f"Invalid number ({vertical_num_slices}) of vertical slices"
+    assert vertical_num_slices > 0, f"Invalid number ({vertical_num_slices}) of vertical slices"
 
-    assert (
-        horizontal_num_slices > 0
-    ), f"Invalid number ({horizontal_num_slices}) of horizontal slices"
+    assert horizontal_num_slices > 0, f"Invalid number ({horizontal_num_slices}) of horizontal slices"
 
     if vertical_num_slices >= maximum_slices:
         recommended_vertical_stride = max(1, image_h // maximum_slices) + 1
@@ -786,9 +750,7 @@ def merge_fragmented(boxes, x_threshold=10, y_threshold=10):
 
         for j, box2 in enumerate(boxes[i + 1 :], start=i + 1):
             if j not in visited:
-                merged_result = merge_boxes(
-                    merged_box, box2, x_threshold=x_threshold, y_threshold=y_threshold
-                )
+                merged_result = merge_boxes(merged_box, box2, x_threshold=x_threshold, y_threshold=y_threshold)
                 if merged_result:
                     merged_box = merged_result
                     visited.add(j)
@@ -802,9 +764,7 @@ def merge_fragmented(boxes, x_threshold=10, y_threshold=10):
 
 
 def check_gpu(use_gpu):
-    if use_gpu and (
-        not paddle.is_compiled_with_cuda() or paddle.device.get_device() == "cpu"
-    ):
+    if use_gpu and (not paddle.is_compiled_with_cuda() or paddle.device.get_device() == "cpu"):
         use_gpu = False
     return use_gpu
 
