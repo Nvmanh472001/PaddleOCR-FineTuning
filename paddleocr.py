@@ -795,10 +795,17 @@ class PaddleOCR(predict_system.TextSystem):
                 dt_boxes = sorted_boxes(dt_boxes)
                 for bno in range(len(dt_boxes)):
                     tmp_box = copy.deepcopy(dt_boxes[bno])
-                    tmp_box[0][1] -= 15
-                    tmp_box[1][1] -= 15
-                    tmp_box[2][1] += 15
-                    tmp_box[3][1] += 15
+
+                    tmp_box[0][1] -= 3.5
+                    tmp_box[1][1] -= 3.5
+                    tmp_box[2][1] += 3.5
+                    tmp_box[3][1] += 3.5
+
+                    tmp_box[0][0] -= 3.5
+                    tmp_box[1][0] += 3.5
+                    tmp_box[2][0] += 3.5
+                    tmp_box[3][0] -= 3.5
+
                     img_crop = get_rotate_crop_image(ori_im, tmp_box)
                     img_crop_list.append(img_crop)
 
