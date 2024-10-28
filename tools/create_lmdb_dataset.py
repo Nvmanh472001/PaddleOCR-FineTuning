@@ -97,7 +97,7 @@ def parser_arg():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", default="data/valid_data")
     parser.add_argument("--data_list", default="data/valid_data/valid_list_v2.txt")
-    parser.add_argument("--max_len", default=800)
+    parser.add_argument("--max_len", default=800, type=int)
     parser.add_argument("--save_path", default="./train_data/data_lmdb_release/validation/")
     return parser
 

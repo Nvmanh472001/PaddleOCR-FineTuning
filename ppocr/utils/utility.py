@@ -83,8 +83,10 @@ def get_image_file_list(img_file, infer_list=None):
         if os.path.isfile(img_file) and _check_image_file(img_file):
             imgs_lists.append(img_file)
         elif os.path.isdir(img_file):
-            for single_file in os.listdir(img_file):
-                file_path = os.path.join(img_file, single_file)
+            from pathlib import Path
+
+            imgs = list(map(str, Path(img_file).rglob("*.jpg")))
+            for file_path in imgs:
                 if os.path.isfile(file_path) and _check_image_file(file_path):
                     imgs_lists.append(file_path)
 

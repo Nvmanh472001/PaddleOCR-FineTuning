@@ -2,6 +2,7 @@ import os
 import glob
 import sys
 import argparse
+from pathlib import Path
 
 
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QGridLayout, QProgressBar, QLineEdit, QAction
@@ -22,7 +23,8 @@ class App(QWidget):
         self.width = 800
         self.height = 200
 
-        self.list_file = glob.glob(os.path.join(image_folder, "*.jpg"))
+        self.list_file = list(map(str, Path(image_folder).rglob("*.jpg")))
+        self.list_file.sort(key=lambda x: int(x.split("/")[-1].split(".")[0]))
         self.total_file = len(self.list_file)
         self.current_index = 0
         self.current_file = self.list_file[self.current_index]
@@ -95,6 +97,9 @@ class App(QWidget):
         # Text box
         self.textbox = QLineEdit()
         self.textbox.resize(280, 40)
+        font = self.textbox.font()
+        font.setPointSize(18)
+        self.textbox.setFont(font)
         self.update_text()
 
         # Button
@@ -102,6 +107,7 @@ class App(QWidget):
         self.next_button.clicked.connect(self.press_next)
         self.previous_button = QPushButton("Previous")
         self.previous_button.clicked.connect(self.press_previous)
+        self.previous_button.setShortcut("Ctrl+Return")
 
         # Add all widgets
         self.layout.addWidget(self.label, 0, 0, 1, -1)

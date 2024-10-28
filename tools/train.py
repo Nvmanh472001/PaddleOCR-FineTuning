@@ -78,9 +78,7 @@ def main(config, device, logger, vdl_writer, seed):
             "Distillation",
         ]:  # distillation model
             for key in config["Architecture"]["Models"]:
-                if (
-                    config["Architecture"]["Models"][key]["Head"]["name"] == "MultiHead"
-                ):  # for multi head
+                if config["Architecture"]["Models"][key]["Head"]["name"] == "MultiHead":  # for multi head
                     if config["PostProcess"]["name"] == "DistillationSARLabelDecode":
                         char_num = char_num - 2
                     if config["PostProcess"]["name"] == "DistillationNRTRLabelDecode":
@@ -88,27 +86,15 @@ def main(config, device, logger, vdl_writer, seed):
                     out_channels_list = {}
                     out_channels_list["CTCLabelDecode"] = char_num
                     # update SARLoss params
-                    if (
-                        list(config["Loss"]["loss_config_list"][-1].keys())[0]
-                        == "DistillationSARLoss"
-                    ):
-                        config["Loss"]["loss_config_list"][-1]["DistillationSARLoss"][
-                            "ignore_index"
-                        ] = (char_num + 1)
+                    if list(config["Loss"]["loss_config_list"][-1].keys())[0] == "DistillationSARLoss":
+                        config["Loss"]["loss_config_list"][-1]["DistillationSARLoss"]["ignore_index"] = char_num + 1
                         out_channels_list["SARLabelDecode"] = char_num + 2
-                    elif any(
-                        "DistillationNRTRLoss" in d
-                        for d in config["Loss"]["loss_config_list"]
-                    ):
+                    elif any("DistillationNRTRLoss" in d for d in config["Loss"]["loss_config_list"]):
                         out_channels_list["NRTRLabelDecode"] = char_num + 3
 
-                    config["Architecture"]["Models"][key]["Head"][
-                        "out_channels_list"
-                    ] = out_channels_list
+                    config["Architecture"]["Models"][key]["Head"]["out_channels_list"] = out_channels_list
                 else:
-                    config["Architecture"]["Models"][key]["Head"][
-                        "out_channels"
-                    ] = char_num
+                    config["Architecture"]["Models"][key]["Head"]["out_channels"] = char_num
         elif config["Architecture"]["Head"]["name"] == "MultiHead":  # for multi head
             if config["PostProcess"]["name"] == "SARLabelDecode":
                 char_num = char_num - 2
@@ -119,13 +105,9 @@ def main(config, device, logger, vdl_writer, seed):
             # update SARLoss params
             if list(config["Loss"]["loss_config_list"][1].keys())[0] == "SARLoss":
                 if config["Loss"]["loss_config_list"][1]["SARLoss"] is None:
-                    config["Loss"]["loss_config_list"][1]["SARLoss"] = {
-                        "ignore_index": char_num + 1
-                    }
+                    config["Loss"]["loss_config_list"][1]["SARLoss"] = {"ignore_index": char_num + 1}
                 else:
-                    config["Loss"]["loss_config_list"][1]["SARLoss"]["ignore_index"] = (
-                        char_num + 1
-                    )
+                    config["Loss"]["loss_config_list"][1]["SARLoss"]["ignore_index"] = char_num + 1
                 out_channels_list["SARLabelDecode"] = char_num + 2
             elif list(config["Loss"]["loss_config_list"][1].keys())[0] == "NRTRLoss":
                 out_channels_list["NRTRLabelDecode"] = char_num + 3
@@ -171,13 +153,9 @@ def main(config, device, logger, vdl_writer, seed):
     amp_dtype = config["Global"].get("amp_dtype", "float16")
     amp_custom_black_list = config["Global"].get("amp_custom_black_list", [])
     amp_custom_white_list = config["Global"].get("amp_custom_white_list", [])
-    if os.path.exists(
-        os.path.join(config["Global"]["save_model_dir"], "train_results.json")
-    ):
+    if os.path.exists(os.path.join(config["Global"]["save_model_dir"], "train_results.json")):
         try:
-            os.remove(
-                os.path.join(config["Global"]["save_model_dir"], "train_results.json")
-            )
+            os.remove(os.path.join(config["Global"]["save_model_dir"], "train_results.json"))
         except:
             pass
     if use_amp:
@@ -193,9 +171,7 @@ def main(config, device, logger, vdl_writer, seed):
             )
         paddle.set_flags(AMP_RELATED_FLAGS_SETTING)
         scale_loss = config["Global"].get("scale_loss", 1.0)
-        use_dynamic_loss_scaling = config["Global"].get(
-            "use_dynamic_loss_scaling", False
-        )
+        use_dynamic_loss_scaling = config["Global"].get("use_dynamic_loss_scaling", False)
         scaler = paddle.amp.GradScaler(
             init_loss_scaling=scale_loss,
             use_dynamic_loss_scaling=use_dynamic_loss_scaling,
@@ -212,9 +188,7 @@ def main(config, device, logger, vdl_writer, seed):
         scaler = None
 
     # load pretrain model
-    pre_best_model_dict = load_model(
-        config, model, optimizer, config["Architecture"]["model_type"]
-    )
+    pre_best_model_dict = load_model(config, model, optimizer, config["Architecture"]["model_type"])
 
     if config["Global"]["distributed"]:
         model = paddle.DataParallel(model)
@@ -254,9 +228,7 @@ def test_reader(config, device, logger):
             if count % 1 == 0:
                 batch_time = time.time() - starttime
                 starttime = time.time()
-                logger.info(
-                    "reader: {}, {}, {}".format(count, len(data[0]), batch_time)
-                )
+                logger.info("reader: {}, {}, {}".format(count, len(data[0]), batch_time))
     except Exception as e:
         logger.info(e)
     logger.info("finish reader: {}, Success!".format(count))
